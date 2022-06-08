@@ -86,6 +86,11 @@ void TelemetryImpl::init()
         this);
 
     _parent->register_mavlink_message_handler(
+        MAVLINK_MSG_ID_BATTERY_STATUS_V2,
+        [this](const mavlink_message_t& message) { process_battery_status_v2(message); },
+        this);
+
+    _parent->register_mavlink_message_handler(
         MAVLINK_MSG_ID_HEARTBEAT,
         [this](const mavlink_message_t& message) { process_heartbeat(message); },
         this);
@@ -1202,6 +1207,36 @@ void TelemetryImpl::process_battery_status(const mavlink_message_t& message)
     }
     // FIXME: it is strange calling it percent when the range goes from 0 to 1.
     new_battery.remaining_percent = bat_status.battery_remaining * 1e-2f;
+
+    set_battery(new_battery);
+
+    {
+        std::lock_guard<std::mutex> lock(_subscription_mutex);
+        if (_battery_subscription) {
+            auto callback = _battery_subscription;
+            auto arg = battery();
+            _parent->call_user_callback([callback, arg]() { callback(arg); });
+        }
+    }
+}
+
+void TelemetryImpl::process_battery_status_v2(const mavlink_message_t& message)
+{
+    mavlink_battery_status_v2_t bat_status;
+    mavlink_msg_battery_status_v2_decode(&message, &bat_status);
+
+    _has_bat_status = true;
+
+    Telemetry::Battery new_battery;
+    new_battery.id = bat_status.id;
+    new_battery.voltage_v = (std::numeric_limits<uint32_t>::max() == bat_status.voltage) ? NAN : bat_status.voltage * 1e-3f;
+    new_battery.remaining_percent = (std::numeric_limits<uint8_t>::max() == bat_status.percent_remaining) ? NAN : bat_status.percent_remaining;
+    
+    // To be added
+    // uint32_t current; /*< [mA] Battery current (through all cells/loads). UINT32_MAX: field not provided.*/
+    // uint32_t status_flags; /*<  Fault, health, and readiness status indications.*/
+    
+    // Not exposed: temperature, capacity_remaining, capacity_consumed
 
     set_battery(new_battery);
 
