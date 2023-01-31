@@ -20,8 +20,8 @@ endif()
 
 ExternalProject_add(
     mavlink
-    GIT_REPOSITORY https://github.com/mavlink/mavlink
-    GIT_TAG c65c498efd2d9673e1d7da37025686daa5a7d568
+    GIT_REPOSITORY https://github.com/akkawimo/mavlink
+    GIT_TAG d96b3b176df0214f2dbfb944b73acfd9a368c230
     PREFIX mavlink
     CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     COMMAND Python3::Interpreter

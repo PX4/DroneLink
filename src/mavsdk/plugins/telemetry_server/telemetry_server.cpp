@@ -19,6 +19,7 @@ using GpsInfo = TelemetryServer::GpsInfo;
 using RawGps = TelemetryServer::RawGps;
 using Battery = TelemetryServer::Battery;
 using RcStatus = TelemetryServer::RcStatus;
+using CellularStatus = TelemetryServer::CellularStatus;
 using StatusText = TelemetryServer::StatusText;
 using ActuatorControlTarget = TelemetryServer::ActuatorControlTarget;
 using ActuatorOutputStatus = TelemetryServer::ActuatorOutputStatus;
@@ -82,6 +83,12 @@ TelemetryServer::Result TelemetryServer::publish_raw_gps(RawGps raw_gps, GpsInfo
 TelemetryServer::Result TelemetryServer::publish_battery(Battery battery) const
 {
     return _impl->publish_battery(battery);
+}
+
+TelemetryServer::Result
+TelemetryServer::publish_cellular_status(CellularStatus cellular_status) const
+{
+    return _impl->publish_cellular_status(cellular_status);
 }
 
 TelemetryServer::Result TelemetryServer::publish_status_text(StatusText status_text) const
@@ -332,6 +339,46 @@ std::ostream& operator<<(std::ostream& str, TelemetryServer::RcStatus const& rc_
     str << "    was_available_once: " << rc_status.was_available_once << '\n';
     str << "    is_available: " << rc_status.is_available << '\n';
     str << "    signal_strength_percent: " << rc_status.signal_strength_percent << '\n';
+    str << '}';
+    return str;
+}
+
+bool operator==(
+    const TelemetryServer::CellularStatus& lhs, const TelemetryServer::CellularStatus& rhs)
+{
+    return (rhs.id == lhs.id) && (rhs.status == lhs.status) &&
+           (rhs.failure_reason == lhs.failure_reason) && (rhs.type == lhs.type) &&
+           (rhs.quality == lhs.quality) && (rhs.mcc == lhs.mcc) && (rhs.mnc == lhs.mnc) &&
+           (rhs.lac == lhs.lac) && (rhs.slot_number == lhs.slot_number) &&
+           (rhs.rx_level == lhs.rx_level) && (rhs.signal_to_noise == lhs.signal_to_noise) &&
+           (rhs.band_number == lhs.band_number) && (rhs.arfcn == lhs.arfcn) &&
+           (rhs.cell_id == lhs.cell_id) &&
+           ((std::isnan(rhs.download_rate) && std::isnan(lhs.download_rate)) ||
+            rhs.download_rate == lhs.download_rate) &&
+           ((std::isnan(rhs.upload_rate) && std::isnan(lhs.upload_rate)) ||
+            rhs.upload_rate == lhs.upload_rate);
+}
+
+std::ostream& operator<<(std::ostream& str, TelemetryServer::CellularStatus const& cellular_status)
+{
+    str << std::setprecision(15);
+    str << "cellular_status:" << '\n' << "{\n";
+    str << "    id: " << cellular_status.id << '\n';
+    str << "    status: " << cellular_status.status << '\n';
+    str << "    failure_reason: " << cellular_status.failure_reason << '\n';
+    str << "    type: " << cellular_status.type << '\n';
+    str << "    quality: " << cellular_status.quality << '\n';
+    str << "    mcc: " << cellular_status.mcc << '\n';
+    str << "    mnc: " << cellular_status.mnc << '\n';
+    str << "    lac: " << cellular_status.lac << '\n';
+    str << "    slot_number: " << cellular_status.slot_number << '\n';
+    str << "    rx_level: " << cellular_status.rx_level << '\n';
+    str << "    signal_to_noise: " << cellular_status.signal_to_noise << '\n';
+    str << "    band_number: " << cellular_status.band_number << '\n';
+    str << "    arfcn: " << cellular_status.arfcn << '\n';
+    str << "    cell_id: " << cellular_status.cell_id << '\n';
+    str << "    download_rate: " << cellular_status.download_rate << '\n';
+    str << "    upload_rate: " << cellular_status.upload_rate << '\n';
     str << '}';
     return str;
 }
