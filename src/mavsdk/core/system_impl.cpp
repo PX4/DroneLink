@@ -214,10 +214,17 @@ void SystemImpl::process_heartbeat(const mavlink_message_t& message)
     mavlink_heartbeat_t heartbeat;
     mavlink_msg_heartbeat_decode(&message, &heartbeat);
 
-    if (heartbeat.autopilot == MAV_AUTOPILOT_PX4) {
-        _autopilot = Autopilot::Px4;
-    } else if (heartbeat.autopilot == MAV_AUTOPILOT_ARDUPILOTMEGA) {
-        _autopilot = Autopilot::ArduPilot;
+    {
+        std::lock_guard<std::mutex> lock(_statustext_handler_callbacks_mutex);
+        if (!_compatibility_mode_fixed) {
+            if (heartbeat.autopilot == MAV_AUTOPILOT_PX4) {
+                _compatibility_mode = System::CompatibilityMode::Px4;
+                LogDebug() << "Auto-detected " << _compatibility_mode;
+            } else if (heartbeat.autopilot == MAV_AUTOPILOT_ARDUPILOTMEGA) {
+                _compatibility_mode = System::CompatibilityMode::Ardupilot;
+                LogDebug() << "Auto-detected " << _compatibility_mode;
+            }
+        }
     }
 
     // Only set the vehicle type if the heartbeat is from an autopilot component
@@ -240,8 +247,8 @@ void SystemImpl::process_heartbeat(const mavlink_message_t& message)
         _hitl_enabled = (heartbeat.base_mode & MAV_MODE_FLAG_HIL_ENABLED) != 0;
     }
     if (heartbeat.base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
-        _flight_mode =
-            to_flight_mode_from_custom_mode(_autopilot, _vehicle_type, heartbeat.custom_mode);
+        _flight_mode = to_flight_mode_from_custom_mode(
+            _compatibility_mode, _vehicle_type, heartbeat.custom_mode);
     }
 
     set_connected();
@@ -814,7 +821,7 @@ void SystemImpl::set_flight_mode_async(
 std::pair<MavlinkCommandSender::Result, MavlinkCommandSender::CommandLong>
 SystemImpl::make_command_flight_mode(FlightMode flight_mode, uint8_t component_id)
 {
-    if (_autopilot == Autopilot::ArduPilot) {
+    if (compatibility_mode() == System::CompatibilityMode::Ardupilot) {
         return make_command_ardupilot_mode(flight_mode, component_id);
     } else {
         return make_command_px4_mode(flight_mode, component_id);
@@ -1307,6 +1314,20 @@ void SystemImpl::subscribe_param_custom(
     const void* cookie)
 {
     _params.subscribe_param_custom_changed(name, callback, cookie);
+}
+
+void SystemImpl::set_compatibility_mode(System::CompatibilityMode compatibility_mode)
+{
+    std::lock_guard<std::mutex> lock(_compatibility_mode_mutex);
+    _compatibility_mode = compatibility_mode;
+
+    if (compatibility_mode == System::CompatibilityMode::Unknown) {
+        LogDebug() << "Compatibility reset to Unknown/automatic";
+        _compatibility_mode_fixed = false;
+    } else {
+        LogDebug() << "Compatibility fixed to " << compatibility_mode;
+        _compatibility_mode_fixed = true;
+    }
 }
 
 } // namespace mavsdk

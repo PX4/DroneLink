@@ -419,7 +419,7 @@ void MissionRawImpl::clear_mission_async(const MissionRaw::ResultCallback& callb
     reset_mission_progress();
 
     // For ArduPilot to clear a mission we need to upload an empty mission.
-    if (_parent->autopilot() == SystemImpl::Autopilot::ArduPilot) {
+    if (_parent->compatibility_mode() == System::CompatibilityMode::Ardupilot) {
         std::vector<MissionRaw::MissionItem> mission_items{empty_item};
         upload_mission_async(mission_items, callback);
     } else {
@@ -517,6 +517,14 @@ MissionRaw::MissionProgress MissionRawImpl::mission_progress()
 MissionRaw::MissionChangedHandle
 MissionRawImpl::subscribe_mission_changed(const MissionRaw::MissionChangedCallback& callback)
 {
+    // Listening for MISSION_ACKs can work, however, it is not guaranteed that these acks
+    // will be received. This should be specced properly, hence it's not in Pure mode.
+    if (_parent->compatibility_mode() == System::CompatibilityMode::Pure) {
+        LogErr() << "mission changed subscription not supported";
+        // We can't really signal this to the caller except doing an abort which would
+        // be a bit brutal, so we just let the caller get a subscription anyway.
+    }
+
     std::lock_guard<std::mutex> lock(_mission_changed.mutex);
     return _mission_changed.callbacks.subscribe(callback);
 }
@@ -540,7 +548,7 @@ MissionRawImpl::import_qgroundcontrol_mission(std::string qgc_plan_path)
     buf << file.rdbuf();
     file.close();
 
-    return MissionImport::parse_json(buf.str(), _parent->autopilot());
+    return MissionImport::parse_json(buf.str(), _parent->compatibility_mode());
 }
 
 std::pair<MissionRaw::Result, MissionRaw::MissionImportData>

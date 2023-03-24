@@ -241,7 +241,8 @@ void MavlinkMissionTransfer::UploadWorkItem::start()
     // item 0, and the sequence starts counting at 0 from 1.
     // This is only for missions, rally points, and geofence items are normal.
     const bool is_ardupilot_mission =
-        _sender.autopilot() == Sender::Autopilot::ArduPilot && _type == MAV_MISSION_TYPE_MISSION;
+        _sender.compatibility_mode() == System::CompatibilityMode::Ardupilot &&
+        _type == MAV_MISSION_TYPE_MISSION;
 
     if (is_ardupilot_mission) {
         for (unsigned i = 1; i < _items.size(); ++i) {
@@ -346,7 +347,7 @@ void MavlinkMissionTransfer::UploadWorkItem::send_cancel_and_finish()
 void MavlinkMissionTransfer::UploadWorkItem::process_mission_request(
     const mavlink_message_t& request_message)
 {
-    if (_sender.autopilot() == Sender::Autopilot::ArduPilot) {
+    if (_sender.compatibility_mode() == System::CompatibilityMode::Ardupilot) {
         // ArduCopter 3.6 sends MISSION_REQUEST (not _INT) but actually accepts ITEM_INT in reply
         mavlink_mission_request_t request;
         mavlink_msg_mission_request_decode(&request_message, &request);

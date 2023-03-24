@@ -311,18 +311,13 @@ void FollowMeImpl::send_target_location()
         return;
     }
 
-    SteadyTimePoint now = _time.steady_time();
-    // needed by http://mavlink.org/messages/common#FOLLOW_TARGET
-    uint64_t elapsed_msec =
-        static_cast<uint64_t>(_time.elapsed_since_s(now) * 1000); // milliseconds
-
     std::lock_guard<std::mutex> lock(_mutex);
     //   LogDebug() << debug_str <<  "Lat: " << _target_location.latitude_deg << " Lon: " <<
     //   _target_location.longitude_deg <<
     //	" Alt: " << _target_location.absolute_altitude_m;
-    const int32_t lat_int = int32_t(std::round(_target_location.latitude_deg * 1e7));
-    const int32_t lon_int = int32_t(std::round(_target_location.longitude_deg * 1e7));
-    const float alt = static_cast<float>(_target_location.absolute_altitude_m);
+    const auto lat_int = static_cast<int32_t>(std::round(_target_location.latitude_deg * 1e7));
+    const auto lon_int = static_cast<int32_t>(std::round(_target_location.longitude_deg * 1e7));
+    const auto alt = static_cast<float>(_target_location.absolute_altitude_m);
 
     const float pos_std_dev[] = {NAN, NAN, NAN};
     const float vel[] = {
@@ -339,7 +334,7 @@ void FollowMeImpl::send_target_location()
         _parent->get_own_system_id(),
         _parent->get_own_component_id(),
         &msg,
-        elapsed_msec,
+        _time.elapsed_ms(),
         _estimation_capabilities,
         lat_int,
         lon_int,

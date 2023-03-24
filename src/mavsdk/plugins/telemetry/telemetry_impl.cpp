@@ -2680,7 +2680,7 @@ void TelemetryImpl::check_calibration()
         }
     }
     if (_parent->has_autopilot()) {
-        if (_parent->autopilot() == SystemImpl::Autopilot::ArduPilot) {
+        if (_parent->compatibility_mode() == System::CompatibilityMode::Ardupilot) {
             // We need to ask for the home position from ArduPilot
             request_home_position_async();
 
@@ -2749,7 +2749,7 @@ void TelemetryImpl::check_calibration()
                 },
                 this);
 
-        } else {
+        } else if (_parent->compatibility_mode() == System::CompatibilityMode::Px4) {
             _parent->get_param_int_async(
                 std::string("CAL_GYRO0_ID"),
                 [this](MAVLinkParameters::Result result, int32_t value) {
@@ -2783,7 +2783,7 @@ void TelemetryImpl::check_calibration()
 
 void TelemetryImpl::process_parameter_update(const std::string& name)
 {
-    if (_parent->autopilot() == SystemImpl::Autopilot::ArduPilot) {
+    if (_parent->compatibility_mode() == System::CompatibilityMode::Ardupilot) {
         if (name.compare("INS_GYROFFS_X") == 0) {
             _parent->get_param_float_async(
                 std::string("INS_GYROFFS_X"),
@@ -2848,7 +2848,7 @@ void TelemetryImpl::process_parameter_update(const std::string& name)
                 },
                 this);
         }
-    } else {
+    } else if (_parent->compatibility_mode() == System::CompatibilityMode::Px4) {
         if (name.compare("CAL_GYRO0_ID") == 0) {
             _parent->get_param_int_async(
                 std::string("CAL_GYRO0_ID"),
